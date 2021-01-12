@@ -1,0 +1,5 @@
+build/
+dist/
+*.sfk
+.dep.inc
+fir-test.exe.stackdump
