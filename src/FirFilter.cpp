@@ -24,14 +24,13 @@ FirFilter::Status FirFilter::readImpulse(const char* path) {
     WavFileReader::Status status;
     WavFileReader reader(path);
     size_t samplesRead;
-    size_t i;
     if (reader.open() != WavFileReader::OK) {
         return ERROR;
     }
     int16_t * samples = new int16_t[tapsNum];
     status = reader.read(tapsNum, samples, &samplesRead);
     if (status != WavFileReader::READ_ERROR) {
-        for (i = 0; i < samplesRead; i++) {
+        for (size_t i = 0; i < samplesRead; i++) {
             impulse[i] = (float) samples[i] / (float) INT16_MAX;
         }
         tapsNum = samplesRead;
