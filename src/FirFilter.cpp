@@ -59,7 +59,7 @@ FirFilter::Status FirFilter::process(const char * srcPath, const char * destPath
 
     while (true) {
         status = reader.read(IO_SAMPLE_BUFF_SIZE, ioSampleBuff, &samplesRead);
-        if (status == WavFileReader::READ_ERROR) {
+        if (status == WavFileReader::READ_ERROR)
             break;
 
         for (sampleIndex = 0; sampleIndex < samplesRead; sampleIndex++) {
