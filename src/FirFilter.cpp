@@ -48,16 +48,19 @@ FirFilter::Status FirFilter::process(const char * srcPath, const char * destPath
     float sample;
     size_t sampleIndex;
 
-    if (output == NULL || reader.open() != WavFileReader::OK)
+    if (output == NULL || reader.open() != WavFileReader::OK) {
+        fclose(output);
+        delete output;
         return ERROR;
+    }
     fwrite(reader.getHeaderSource(), sizeof (uint8_t), WavFileReader::HEADER_SIZE, output);
 
     memset(buffer, 0, sizeof (float) * tapsNum);
 
     while (true) {
         status = reader.read(IO_SAMPLE_BUFF_SIZE, ioSampleBuff, &samplesRead);
-        if (status == WavFileReader::READ_ERROR)
-            return ERROR;
+        if (status == WavFileReader::READ_ERROR) {
+            break;
 
         for (sampleIndex = 0; sampleIndex < samplesRead; sampleIndex++) {
             for (size_t i = tapsNum - 1; i > 0; i--) {
@@ -82,6 +85,6 @@ FirFilter::Status FirFilter::process(const char * srcPath, const char * destPath
     fclose(output);
     delete output;
 
-    return OK;
+    return status == WavFileReader::READ_ERROR ? ERROR : OK;
 }
 
