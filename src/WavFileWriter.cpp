@@ -10,9 +10,9 @@
 
 #include "WavFileWriter.h"
 
-#define toShort(_src, _buff, _index) _buff[_index] = _src & 0xFF; \
+#define toShort(_src, _buff, _index) _buff[_index] = (_src & 0xFF); \
                                      _buff[_index+1] = ((_src >> 8) & 0xFF)
-#define toLong(_src, _buff, _index) _buff[_index] = _src & 0xFF; \
+#define toLong(_src, _buff, _index) _buff[_index] = (_src & 0xFF); \
                                     _buff[_index+1] = ((_src >> 8) & 0xFF); \
                                     _buff[_index+2] = ((_src >> 16) & 0xFF); \
                                     _buff[_index+3] = ((_src >> 24) & 0xFF)
