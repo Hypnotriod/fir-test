@@ -9,6 +9,7 @@
 
 #include "FirFilter.h"
 #include "WavFileReader.h"
+#include "WavFileWriter.h"
 
 FirFilter::FirFilter(size_t tapsNum, float gain) : tapsNum(tapsNum), gain(gain) {
     impulse = new float[tapsNum];
@@ -22,9 +23,9 @@ FirFilter::~FirFilter() {
 
 FirFilter::Status FirFilter::readImpulse(const char* path) {
     WavFileReader::Status status;
-    WavFileReader reader(path);
+    WavFileReader reader;
     size_t samplesRead;
-    if (reader.open() != WavFileReader::OK) {
+    if (reader.open(path) != WavFileReader::OK) {
         return ERROR;
     }
     int16_t * samples = new int16_t[tapsNum];
@@ -40,26 +41,24 @@ FirFilter::Status FirFilter::readImpulse(const char* path) {
 }
 
 FirFilter::Status FirFilter::process(const char * srcPath, const char * destPath) {
-    WavFileReader reader(srcPath);
-    WavFileReader::Status status;
-    FILE * output = fopen(destPath, "wb");
+    WavFileReader reader;
+    WavFileReader::Status readerStatus;
+    WavFileWriter writer;
     int16_t ioSampleBuff[IO_SAMPLE_BUFF_SIZE];
     size_t samplesRead;
-    float sample;
     size_t sampleIndex;
+    float sample;
 
-    if (output == NULL || reader.open() != WavFileReader::OK) {
-        fclose(output);
-        delete output;
+    if (reader.open(srcPath) != WavFileReader::OK || writer.open(destPath) != WavFileWriter::OK)
         return ERROR;
-    }
-    fwrite(reader.getHeaderSource(), sizeof (uint8_t), WavFileReader::HEADER_SIZE, output);
+
+    writer.writeHeader(reader.getHeader());
 
     memset(buffer, 0, sizeof (float) * tapsNum);
 
     while (true) {
-        status = reader.read(IO_SAMPLE_BUFF_SIZE, ioSampleBuff, &samplesRead);
-        if (status == WavFileReader::READ_ERROR)
+        readerStatus = reader.read(IO_SAMPLE_BUFF_SIZE, ioSampleBuff, &samplesRead);
+        if (readerStatus == WavFileReader::READ_ERROR)
             break;
 
         for (sampleIndex = 0; sampleIndex < samplesRead; sampleIndex++) {
@@ -76,15 +75,13 @@ FirFilter::Status FirFilter::process(const char * srcPath, const char * destPath
             ioSampleBuff[sampleIndex] = (int16_t) sample;
         }
 
-        fwrite(ioSampleBuff, sizeof (int16_t), samplesRead, output);
+        if (writer.write(samplesRead, ioSampleBuff) != WavFileWriter::OK)
+            return ERROR;
 
-        if (status == WavFileReader::END_OF_FILE)
+        if (readerStatus == WavFileReader::END_OF_FILE)
             break;
     }
 
-    fclose(output);
-    delete output;
-
-    return status == WavFileReader::READ_ERROR ? ERROR : OK;
+    return readerStatus == WavFileReader::READ_ERROR ? ERROR : OK;
 }
 

@@ -1,6 +1,6 @@
 
 /* 
- * File:   ImpulseReader.cpp
+ * File:   WavFileReader.cpp
  * Author: Ilya Pikin
  */
 
@@ -13,31 +13,35 @@
 #define parseLong(_src, _index) (_src[_index] | (_src[_index+1] << 8) \
                | (_src[_index+2] << 16) | (_src[_index+3] << 24))
 
-WavFileReader::WavFileReader(const char * path) : path(path) {
+WavFileReader::WavFileReader() {
 }
 
 WavFileReader::~WavFileReader() {
+    close();
+}
+
+WavFileHeader * WavFileReader::getHeader() {
+    return &header;
+}
+
+WavFileReader::Status WavFileReader::open(const char * path) {
+    file = fopen(path, "rb");
+    if (file == NULL)
+        return OPEN_ERROR;
+    return parseHeader();
+}
+
+void WavFileReader::close() {
     if (file != NULL) {
         fclose(file);
         delete file;
     }
 }
 
-uint8_t * WavFileReader::getHeaderSource() {
-    return headerSource;
-}
-
-WavFileReader::Status WavFileReader::open() {
-    file = fopen(path, "rb");
-    if (file == NULL)
-        return WavFileReader::READ_ERROR;
-    return parseHeader();
-}
-
-WavFileReader::Status WavFileReader::read(size_t samplesNum, int16_t * pBuff, size_t * samplesRead) {
+WavFileReader::Status WavFileReader::read(size_t samplesNum, int16_t * buffer, size_t * samplesRead) {
     size_t samplesLeft = getSamplesLeft();
     size_t samplesToRead = samplesLeft > samplesNum ? samplesNum : samplesLeft;
-    *samplesRead = fread(pBuff, sizeof (int16_t), samplesToRead, file);
+    *samplesRead = fread(buffer, sizeof (int16_t), samplesToRead, file);
     if (samplesLeft == *samplesRead) {
         return END_OF_FILE;
     } else if (*samplesRead != samplesNum) {
@@ -48,9 +52,10 @@ WavFileReader::Status WavFileReader::read(size_t samplesNum, int16_t * pBuff, si
 }
 
 WavFileReader::Status WavFileReader::parseHeader() {
-    size_t bytesRead = fread(headerSource, sizeof (uint8_t), HEADER_SIZE, file);
-    if (bytesRead != HEADER_SIZE) return PARSE_ERROR;
-    fseek(file, HEADER_SIZE, SEEK_SET);
+    uint8_t headerSource[WAV_FILE_HEADER_SIZE];
+    size_t bytesRead = fread(headerSource, sizeof (uint8_t), WAV_FILE_HEADER_SIZE, file);
+    if (bytesRead != WAV_FILE_HEADER_SIZE) return PARSE_ERROR;
+    fseek(file, WAV_FILE_HEADER_SIZE, SEEK_SET);
 
     memcpy(header.chunkId, &headerSource[0], 4);
     header.chunkSize = parseLong(headerSource, 4);
@@ -70,7 +75,7 @@ WavFileReader::Status WavFileReader::parseHeader() {
 }
 
 size_t WavFileReader::getSamplesRead() {
-    return (ftell(file) - HEADER_SIZE) / sizeof (int16_t);
+    return (ftell(file) - WAV_FILE_HEADER_SIZE) / sizeof (int16_t);
 }
 
 size_t WavFileReader::getSamplesLeft() {

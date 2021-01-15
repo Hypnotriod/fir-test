@@ -37,7 +37,8 @@ OBJECTDIR=${CND_BUILDDIR}/${CND_CONF}/${CND_PLATFORM}
 OBJECTFILES= \
 	${OBJECTDIR}/main.o \
 	${OBJECTDIR}/src/FirFilter.o \
-	${OBJECTDIR}/src/WavFileReader.o
+	${OBJECTDIR}/src/WavFileReader.o \
+	${OBJECTDIR}/src/WavFileWriter.o
 
 
 # C Compiler Flags
@@ -78,6 +79,11 @@ ${OBJECTDIR}/src/WavFileReader.o: src/WavFileReader.cpp
 	${MKDIR} -p ${OBJECTDIR}/src
 	${RM} "$@.d"
 	$(COMPILE.cc) -g -Isrc -Iinclude -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/src/WavFileReader.o src/WavFileReader.cpp
+
+${OBJECTDIR}/src/WavFileWriter.o: src/WavFileWriter.cpp
+	${MKDIR} -p ${OBJECTDIR}/src
+	${RM} "$@.d"
+	$(COMPILE.cc) -g -Isrc -Iinclude -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/src/WavFileWriter.o src/WavFileWriter.cpp
 
 # Subprojects
 .build-subprojects:
