@@ -9,9 +9,13 @@
 
 #include "WavFileReader.h"
 
-#define parseShort(_src, _index) (_src[_index] | (_src[_index+1] << 8))
-#define parseLong(_src, _index) (_src[_index] | (_src[_index+1] << 8) \
-               | (_src[_index+2] << 16) | (_src[_index+3] << 24))
+#define read16(_src, _index) (_src[(_index)] | (_src[(_index)+1] << 8))
+#define read24(_src, _index) (_src[(_index)] | (_src[(_index)+1] << 8) \
+               | (_src[(_index)+2] << 16))
+#define read32(_src, _index) (_src[(_index)] | (_src[(_index)+1] << 8) \
+               | (_src[(_index)+2] << 16) | (_src[(_index)+3] << 24))
+
+#define INT24_MAX 8388607
 
 WavFileReader::WavFileReader() {
 }
@@ -38,17 +42,42 @@ void WavFileReader::close() {
     }
 }
 
-WavFileReader::Status WavFileReader::read(size_t samplesNum, int16_t * buffer, size_t * samplesRead) {
+WavFileReader::Status WavFileReader::read(size_t samplesNum, float * buffer, size_t * samplesRead) {
     size_t samplesLeft = getSamplesLeft();
     size_t samplesToRead = samplesLeft > samplesNum ? samplesNum : samplesLeft;
-    *samplesRead = fread(buffer, sizeof (int16_t), samplesToRead, file);
-    if (samplesLeft == *samplesRead) {
-        return END_OF_FILE;
+    uint8_t * ioBuffer = new uint8_t[(header.bitsPerSample / 8) * samplesNum];
+    int32_t sample;
+    Status status = OK;
+
+    *samplesRead = fread(ioBuffer, (header.bitsPerSample / 8), samplesToRead, file);
+
+    if (*samplesRead == samplesLeft) {
+        status = END_OF_FILE;
     } else if (*samplesRead != samplesNum) {
-        if (feof(file)) return END_OF_FILE;
-        else return READ_ERROR;
+        if (feof(file)) status = END_OF_FILE;
+        else status = READ_ERROR;
     }
-    return OK;
+
+    if (status != READ_ERROR) {
+        if (header.bitsPerSample == 16) {
+            for (size_t i = 0; i < *samplesRead; i++) {
+                sample = read16(ioBuffer, i * 2);
+                if (sample & 0x8000)
+                    sample = sample | 0xFFFF0000;
+                buffer[i] = (float) sample / (float) INT16_MAX;
+            }
+        } else if (header.bitsPerSample == 24) {
+            for (size_t i = 0; i < *samplesRead; i++) {
+                sample = read24(ioBuffer, i * 2);
+                if (sample & 0x800000)
+                    sample = sample | 0xFF000000;
+                buffer[i] = (float) sample / (float) INT24_MAX;
+            }
+        }
+    }
+
+    delete[] ioBuffer;
+    return status;
 }
 
 WavFileReader::Status WavFileReader::parseHeader() {
@@ -58,18 +87,18 @@ WavFileReader::Status WavFileReader::parseHeader() {
     fseek(file, WAV_FILE_HEADER_SIZE, SEEK_SET);
 
     memcpy(header.chunkId, &headerSource[0], 4);
-    header.chunkSize = parseLong(headerSource, 4);
+    header.chunkSize = read32(headerSource, 4);
     memcpy(header.format, &headerSource[8], 4);
     memcpy(header.subchunk1Id, &headerSource[12], 4);
-    header.subchunk1Size = parseLong(headerSource, 16);
-    header.audioFormat = parseShort(headerSource, 20);
-    header.numChannels = parseShort(headerSource, 22);
-    header.sampleRate = parseLong(headerSource, 24);
-    header.byteRate = parseLong(headerSource, 28);
-    header.blockAlign = parseShort(headerSource, 32);
-    header.bitsPerSample = parseShort(headerSource, 34);
+    header.subchunk1Size = read32(headerSource, 16);
+    header.audioFormat = read16(headerSource, 20);
+    header.numChannels = read16(headerSource, 22);
+    header.sampleRate = read32(headerSource, 24);
+    header.byteRate = read32(headerSource, 28);
+    header.blockAlign = read16(headerSource, 32);
+    header.bitsPerSample = read16(headerSource, 34);
     memcpy(header.subchunk2Id, &headerSource[36], 4);
-    header.subchunk2Size = parseLong(headerSource, 40);
+    header.subchunk2Size = read32(headerSource, 40);
 
     return OK;
 }

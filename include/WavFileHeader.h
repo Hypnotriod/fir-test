@@ -7,7 +7,7 @@
 #ifndef WAVFILEHEADER_H
 #define WAVFILEHEADER_H
 
-static const size_t WAV_FILE_HEADER_SIZE = 44;
+#define WAV_FILE_HEADER_SIZE 44
 
 struct WavFileHeader {
     char chunkId[4]; // "RIFF"

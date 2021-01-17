@@ -28,15 +28,10 @@ FirFilter::Status FirFilter::readImpulse(const char* path) {
     if (reader.open(path) != WavFileReader::OK) {
         return ERROR;
     }
-    int16_t * samples = new int16_t[tapsNum];
-    status = reader.read(tapsNum, samples, &samplesRead);
+    status = reader.read(tapsNum, impulse, &samplesRead);
     if (status != WavFileReader::READ_ERROR) {
-        for (size_t i = 0; i < samplesRead; i++) {
-            impulse[i] = (float) samples[i] / (float) INT16_MAX;
-        }
         tapsNum = samplesRead;
     }
-    delete[] samples;
     return status == WavFileReader::READ_ERROR ? ERROR : OK;
 }
 
@@ -44,7 +39,7 @@ FirFilter::Status FirFilter::process(const char * srcPath, const char * destPath
     WavFileReader reader;
     WavFileReader::Status readerStatus;
     WavFileWriter writer;
-    int16_t ioSampleBuff[IO_SAMPLE_BUFF_SIZE];
+    float ioSampleBuff[IO_SAMPLE_BUFF_SIZE];
     size_t samplesRead;
     size_t sampleIndex;
     float sample;
@@ -52,7 +47,7 @@ FirFilter::Status FirFilter::process(const char * srcPath, const char * destPath
     if (reader.open(srcPath) != WavFileReader::OK || writer.open(destPath) != WavFileWriter::OK)
         return ERROR;
 
-    writer.writeHeader(reader.getHeader());
+    writer.writeHeader(*reader.getHeader());
 
     memset(buffer, 0, sizeof (float) * tapsNum);
 
@@ -65,14 +60,14 @@ FirFilter::Status FirFilter::process(const char * srcPath, const char * destPath
             for (size_t i = tapsNum - 1; i > 0; i--) {
                 buffer[i] = buffer[i - 1];
             }
-            buffer[0] = (float) ioSampleBuff[sampleIndex];
+            buffer[0] = ioSampleBuff[sampleIndex];
 
-            sample = 0;
+            sample = 0.f;
             for (size_t i = 0; i < tapsNum; i++) {
                 sample += buffer[i] * impulse[i];
             }
             sample *= gain;
-            ioSampleBuff[sampleIndex] = (int16_t) sample;
+            ioSampleBuff[sampleIndex] = sample;
         }
 
         if (writer.write(samplesRead, ioSampleBuff) != WavFileWriter::OK)

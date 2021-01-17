@@ -25,13 +25,14 @@ int main(int argc, char** argv) {
     status = filter.readImpulse("data/impulse.wav");
     if (status != FirFilter::OK) {
         cout << "Read Impulse Error! " << endl;
-        return 0;
+        return -1;
     }
 
     start = clock();
     status = filter.process("data/input.wav", "data/output.wav");
     if (status != FirFilter::OK) {
         cout << "Filter Process Error!" << endl;
+        return -1;
     }
     end = clock();
 

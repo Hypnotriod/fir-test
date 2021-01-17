@@ -25,10 +25,11 @@ public:
 
     Status open(const char * path);
     void close();
-    Status writeHeader(WavFileHeader * header);
-    Status write(size_t samplesNum, int16_t * buffer);
+    Status writeHeader(WavFileHeader & header);
+    Status write(size_t samplesNum, float * buffer);
 private:
     FILE * file;
+    uint16_t bitsPerSample = 0;
 };
 
 #endif /* WAVFILEWRITER_H */
