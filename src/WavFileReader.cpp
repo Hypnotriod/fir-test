@@ -68,7 +68,7 @@ WavFileReader::Status WavFileReader::read(size_t samplesNum, float * buffer, siz
             }
         } else if (header.bitsPerSample == 24) {
             for (size_t i = 0; i < *samplesRead; i++) {
-                sample = read24(ioBuffer, i * 2);
+                sample = read24(ioBuffer, i * 3);
                 if (sample & 0x800000)
                     sample = sample | 0xFF000000;
                 buffer[i] = (float) sample / (float) INT24_MAX;

@@ -13,7 +13,7 @@ public:
     FirFilter(size_t tapsNum, float gain);
     virtual ~FirFilter();
 
-    const size_t IO_SAMPLE_BUFF_SIZE = 4096;
+    static const size_t IO_SAMPLE_BUFF_SIZE = 4096;
 
     enum Status {
         OK = 0,
