@@ -11,16 +11,15 @@
 #include "FirFilter.h"
 
 #define TAPS_NUM 22000L
-#define GAIN 0.35F
 
 using namespace std;
 
 int main(int argc, char** argv) {
-    FirFilter filter(TAPS_NUM, GAIN);
+    FirFilter filter(TAPS_NUM);
     FirFilter::Status status;
     clock_t start, end;
 
-    cout << "Computation started." << endl << flush;
+    cout << "Reading impulse." << endl << flush;
 
     status = filter.readImpulse("data/impulse.wav");
     if (status != FirFilter::OK) {
@@ -28,6 +27,10 @@ int main(int argc, char** argv) {
         return -1;
     }
 
+    cout << "Adjusting implse gain." << endl << flush;
+    filter.adjustGain();
+
+    cout << "Computation started." << endl << flush;
     start = clock();
     status = filter.process("data/input.wav", "data/output.wav");
     if (status != FirFilter::OK) {

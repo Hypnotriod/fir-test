@@ -4,16 +4,16 @@
  * Author: Ilya Pikin
  */
 
-#include <cstdlib>
 #include <cstring>
+#include <math.h>
 
 #include "FirFilter.h"
 #include "WavFileReader.h"
 #include "WavFileWriter.h"
 
-FirFilter::FirFilter(size_t tapsNum, float gain) : tapsNum(tapsNum), gain(gain) {
-    impulse = new float[tapsNum];
-    buffer = new float[tapsNum];
+FirFilter::FirFilter(size_t maxTapsNum) : maxTapsNum(maxTapsNum), tapsNum(maxTapsNum) {
+    impulse = new float[maxTapsNum];
+    buffer = new float[maxTapsNum];
 }
 
 FirFilter::~FirFilter() {
@@ -28,11 +28,28 @@ FirFilter::Status FirFilter::readImpulse(const char* path) {
     if (reader.open(path) != WavFileReader::OK) {
         return ERROR;
     }
-    status = reader.read(tapsNum, impulse, &samplesRead);
+    status = reader.read(maxTapsNum, impulse, &samplesRead);
     if (status != WavFileReader::READ_ERROR) {
         tapsNum = samplesRead;
+        sampleRate = reader.getHeader()->sampleRate;
     }
     return status == WavFileReader::READ_ERROR ? ERROR : OK;
+}
+
+void FirFilter::adjustGain() {
+    float summ;
+    float maxSumm = 0.f;
+
+    for (size_t i = 0; i < tapsNum; i++) {
+        summ = 0.f;
+        for (size_t j = 0; j < tapsNum; j++) {
+            summ += sinf(M_2_PI / ((float) sampleRate / ADJUST_FREQUENCY) * j)
+                    * impulse[(i + j) % tapsNum];
+        }
+        impulse[i];
+        if (maxSumm < summ) maxSumm = summ;
+    }
+    gain = 1.f / maxSumm;
 }
 
 FirFilter::Status FirFilter::process(const char * srcPath, const char * destPath) {

@@ -10,10 +10,11 @@
 
 class FirFilter {
 public:
-    FirFilter(size_t tapsNum, float gain);
+    FirFilter(size_t maxTapsNum);
     virtual ~FirFilter();
 
-    static const size_t IO_SAMPLE_BUFF_SIZE = 4096;
+    const size_t IO_SAMPLE_BUFF_SIZE = 4096;
+    const float ADJUST_FREQUENCY = 300.f;
 
     enum Status {
         OK = 0,
@@ -21,10 +22,13 @@ public:
     };
 
     Status readImpulse(const char * path);
+    void adjustGain();
     Status process(const char * srcPath, const char * destPath);
 private:
-    float gain;
+    uint32_t sampleRate;
+    const size_t maxTapsNum;
     size_t tapsNum;
+    float gain = 1.f;
     float * impulse;
     float * buffer;
 };
