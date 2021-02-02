@@ -39,17 +39,21 @@ FirFilter::Status FirFilter::readImpulse(const char* path) {
 void FirFilter::adjustGain() {
     float summ;
     float maxSumm = 0.f;
+    float * sine = new float[tapsNum];
+
+    for (size_t i = 0; i < tapsNum; i++) {
+        sine[i] = sinf(M_2_PI / ((float) sampleRate / GAIN_ADJUST_FREQUENCY) * i);
+    }
 
     for (size_t i = 0; i < tapsNum; i++) {
         summ = 0.f;
         for (size_t j = 0; j < tapsNum; j++) {
-            summ += sinf(M_2_PI / ((float) sampleRate / ADJUST_FREQUENCY) * j)
-                    * impulse[(i + j) % tapsNum];
+            summ += sine[(i + j) % tapsNum] * impulse[j];
         }
-        impulse[i];
         if (maxSumm < summ) maxSumm = summ;
     }
     gain = 1.f / maxSumm;
+    delete[] sine;
 }
 
 FirFilter::Status FirFilter::process(const char * srcPath, const char * destPath) {

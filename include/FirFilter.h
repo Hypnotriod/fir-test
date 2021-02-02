@@ -14,7 +14,7 @@ public:
     virtual ~FirFilter();
 
     const size_t IO_SAMPLE_BUFF_SIZE = 4096;
-    const float ADJUST_FREQUENCY = 300.f;
+    const float GAIN_ADJUST_FREQUENCY = 300.f;
 
     enum Status {
         OK = 0,

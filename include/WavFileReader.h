@@ -7,6 +7,7 @@
 #ifndef WAVFILEREADER_H
 #define WAVFILEREADER_H
 
+#include <stdio.h>
 #include <cstdint>
 #include <cstdlib>
 
