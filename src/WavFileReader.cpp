@@ -59,7 +59,12 @@ WavFileReader::Status WavFileReader::read(size_t samplesNum, float * buffer, siz
     }
 
     if (status != READ_ERROR) {
-        if (header.bitsPerSample == 16) {
+        if (header.bitsPerSample == 8) {
+            for (size_t i = 0; i < *samplesRead; i++) {
+                sample = ioBuffer[i] - 128;
+                buffer[i] = (float) sample / (float) INT8_MAX;
+            }
+        } else if (header.bitsPerSample == 16) {
             for (size_t i = 0; i < *samplesRead; i++) {
                 sample = read16(ioBuffer, i * 2);
                 if (sample & 0x8000)
@@ -100,7 +105,11 @@ WavFileReader::Status WavFileReader::parseHeader() {
     memcpy(header.subchunk2Id, &headerSource[36], 4);
     header.subchunk2Size = read32(headerSource, 40);
 
-    return OK;
+    return memcmp(header.chunkId, "RIFF", 4) == 0 &&
+            memcmp(header.format, "WAVE", 4) == 0 &&
+            memcmp(header.subchunk1Id, "fmt ", 4) == 0 &&
+            memcmp(header.subchunk2Id, "data", 4) == 0
+            ? OK : PARSE_ERROR;
 }
 
 size_t WavFileReader::getSamplesRead() {
