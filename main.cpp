@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    cout << "Adjusting implse gain." << endl << flush;
+    cout << "Adjusting impulse gain." << endl << flush;
     filter.adjustGain();
 
     cout << "Computation started." << endl << flush;
