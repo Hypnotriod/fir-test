@@ -73,7 +73,11 @@ WavFileWriter::Status WavFileWriter::write(size_t samplesNum, float* buffer) {
     uint8_t * ioBuffer = new uint8_t[(bitsPerSample / 8) * samplesNum];
     int32_t sample;
 
-    if (bitsPerSample == 16) {
+    if (bitsPerSample == 8) {
+        for (size_t i = 0; i < samplesNum; i++) {
+            ioBuffer[i] = buffer[i] * (float) INT8_MAX + 128;
+        }
+    } else if (bitsPerSample == 16) {
         for (size_t i = 0; i < samplesNum; i++) {
             sample = (buffer[i] * (float) INT16_MAX);
             write16(sample, ioBuffer, i * 2);
