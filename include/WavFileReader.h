@@ -33,10 +33,11 @@ public:
     size_t getSamplesRead();
     size_t getSamplesLeft();
     WavFileHeader * getHeader();
+    bool isSupported();
 
 private:
     WavFileHeader header;
-    FILE * file;
+    FILE * file = NULL;
     size_t dataSize;
 
     Status parseHeader();

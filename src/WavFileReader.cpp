@@ -24,10 +24,6 @@ WavFileReader::~WavFileReader() {
     close();
 }
 
-WavFileHeader * WavFileReader::getHeader() {
-    return &header;
-}
-
 WavFileReader::Status WavFileReader::open(const char * path) {
     file = fopen(path, "rb");
     if (file == NULL)
@@ -39,6 +35,7 @@ void WavFileReader::close() {
     if (file != NULL) {
         fclose(file);
         delete file;
+        file = NULL;
     }
 }
 
@@ -59,24 +56,38 @@ WavFileReader::Status WavFileReader::read(size_t samplesNum, float * buffer, siz
     }
 
     if (status != READ_ERROR) {
-        if (header.bitsPerSample == 8) {
-            for (size_t i = 0; i < *samplesRead; i++) {
-                sample = ioBuffer[i] - 128;
-                buffer[i] = (float) sample / (float) INT8_MAX;
+        if (header.audioFormat == WAV_FILE_AUDIO_FORMAT_PCM) {
+            if (header.bitsPerSample == 8) {
+                for (size_t i = 0; i < *samplesRead; i++) {
+                    sample = ioBuffer[i] - 128;
+                    buffer[i] = (float) sample / (float) INT8_MAX;
+                }
+            } else if (header.bitsPerSample == 16) {
+                for (size_t i = 0; i < *samplesRead; i++) {
+                    sample = read16(ioBuffer, i * 2);
+                    if (sample & 0x8000)
+                        sample = sample | 0xFFFF0000;
+                    buffer[i] = (float) sample / (float) INT16_MAX;
+                }
+            } else if (header.bitsPerSample == 24) {
+                for (size_t i = 0; i < *samplesRead; i++) {
+                    sample = read24(ioBuffer, i * 3);
+                    if (sample & 0x800000)
+                        sample = sample | 0xFF000000;
+                    buffer[i] = (float) sample / (float) INT24_MAX;
+                }
+            } else if (header.bitsPerSample == 32) {
+                for (size_t i = 0; i < *samplesRead; i++) {
+                    sample = read32(ioBuffer, i * 4);
+                    buffer[i] = (float) sample / (float) INT32_MAX;
+                }
             }
-        } else if (header.bitsPerSample == 16) {
-            for (size_t i = 0; i < *samplesRead; i++) {
-                sample = read16(ioBuffer, i * 2);
-                if (sample & 0x8000)
-                    sample = sample | 0xFFFF0000;
-                buffer[i] = (float) sample / (float) INT16_MAX;
-            }
-        } else if (header.bitsPerSample == 24) {
-            for (size_t i = 0; i < *samplesRead; i++) {
-                sample = read24(ioBuffer, i * 3);
-                if (sample & 0x800000)
-                    sample = sample | 0xFF000000;
-                buffer[i] = (float) sample / (float) INT24_MAX;
+        } else if (header.audioFormat == WAV_FILE_AUDIO_FORMAT_IEEE_FLOAT) {
+            if (header.bitsPerSample == 32) {
+                for (size_t i = 0; i < *samplesRead; i++) {
+                    sample = read32(ioBuffer, i * 4);
+                    buffer[i] = *((float *) &sample);
+                }
             }
         }
     }
@@ -110,6 +121,22 @@ WavFileReader::Status WavFileReader::parseHeader() {
             memcmp(header.subchunk1Id, "fmt ", 4) == 0 &&
             memcmp(header.subchunk2Id, "data", 4) == 0
             ? OK : PARSE_ERROR;
+}
+
+bool WavFileReader::isSupported() {
+    if (header.audioFormat == WAV_FILE_AUDIO_FORMAT_PCM &&
+            (header.bitsPerSample == 8 || header.bitsPerSample == 16 ||
+            header.bitsPerSample == 24 || header.bitsPerSample == 32))
+        return true;
+
+    if (header.audioFormat == WAV_FILE_AUDIO_FORMAT_IEEE_FLOAT && header.bitsPerSample == 32)
+        return true;
+
+    return false;
+}
+
+WavFileHeader * WavFileReader::getHeader() {
+    return &header;
 }
 
 size_t WavFileReader::getSamplesTotal() {

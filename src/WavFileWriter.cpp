@@ -47,6 +47,7 @@ WavFileWriter::Status WavFileWriter::writeHeader(WavFileHeader & header) {
     uint8_t headerSource[WAV_FILE_HEADER_SIZE];
 
     bitsPerSample = header.bitsPerSample;
+    audioFormat = header.audioFormat;
 
     size_t chunkSize = header.subchunk2Size + WAV_FILE_HEADER_SIZE - 8;
 
@@ -73,21 +74,36 @@ WavFileWriter::Status WavFileWriter::write(size_t samplesNum, float* buffer) {
     uint8_t * ioBuffer = new uint8_t[(bitsPerSample / 8) * samplesNum];
     int32_t sample;
 
-    if (bitsPerSample == 8) {
-        for (size_t i = 0; i < samplesNum; i++) {
-            ioBuffer[i] = buffer[i] * (float) INT8_MAX + 128;
+    if (audioFormat == WAV_FILE_AUDIO_FORMAT_PCM) {
+        if (bitsPerSample == 8) {
+            for (size_t i = 0; i < samplesNum; i++) {
+                ioBuffer[i] = buffer[i] * (float) INT8_MAX + 128;
+            }
+        } else if (bitsPerSample == 16) {
+            for (size_t i = 0; i < samplesNum; i++) {
+                sample = (buffer[i] * (float) INT16_MAX);
+                write16(sample, ioBuffer, i * 2);
+            }
+        } else if (bitsPerSample == 24) {
+            for (size_t i = 0; i < samplesNum; i++) {
+                sample = (buffer[i] * (float) INT24_MAX);
+                write24(sample, ioBuffer, i * 3);
+            }
+        } else if (bitsPerSample == 32) {
+            for (size_t i = 0; i < samplesNum; i++) {
+                sample = (buffer[i] * (float) INT32_MAX);
+                write32(sample, ioBuffer, i * 4);
+            }
         }
-    } else if (bitsPerSample == 16) {
-        for (size_t i = 0; i < samplesNum; i++) {
-            sample = (buffer[i] * (float) INT16_MAX);
-            write16(sample, ioBuffer, i * 2);
-        }
-    } else if (bitsPerSample == 24) {
-        for (size_t i = 0; i < samplesNum; i++) {
-            sample = (buffer[i] * (float) INT24_MAX);
-            write24(sample, ioBuffer, i * 3);
+    } else if (audioFormat == WAV_FILE_AUDIO_FORMAT_IEEE_FLOAT) {
+        if (bitsPerSample == 32) {
+            for (size_t i = 0; i < samplesNum; i++) {
+                sample = *((int32_t *) & buffer[i]);
+                write32(sample, ioBuffer, i * 4);
+            }
         }
     }
+
 
     fwrite(ioBuffer, (bitsPerSample / 8), samplesNum, file);
     delete[] ioBuffer;

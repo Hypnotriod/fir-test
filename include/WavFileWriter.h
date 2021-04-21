@@ -30,6 +30,7 @@ public:
     Status write(size_t samplesNum, float * buffer);
 private:
     FILE * file;
+    uint16_t audioFormat = 0;
     uint16_t bitsPerSample = 0;
 };
 
