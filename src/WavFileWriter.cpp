@@ -104,7 +104,6 @@ WavFileWriter::Status WavFileWriter::write(size_t samplesNum, float* buffer) {
         }
     }
 
-
     fwrite(ioBuffer, (bitsPerSample / 8), samplesNum, file);
     delete[] ioBuffer;
     return OK;
